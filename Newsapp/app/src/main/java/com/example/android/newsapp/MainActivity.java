@@ -4,9 +4,11 @@ import android.app.LoaderManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -42,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements
      * URL for guardian data from guardian
      */
     private static final String GUARDIAN_URL =
-            "https://content.guardianapis.com/search?q=debate&tag=politics/politics&from-date=2014-01-01&api-key=test";
+            "http://content.guardianapis.com/search";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,8 +77,11 @@ public class MainActivity extends AppCompatActivity implements
                 // Create a new intent to view the earthquake URI
                 Intent websiteIntent = new Intent(Intent.ACTION_VIEW, feedNewsUri);
 
-                // Send the intent to launch a new activity
-                startActivity(websiteIntent);
+                if (websiteIntent.resolveActivity(getPackageManager()) != null) {
+                    // Send the intent to launch a new activity
+                    startActivity(websiteIntent);
+                }
+
             }
         });
         ConnectivityManager connMgr = (ConnectivityManager)
@@ -100,7 +105,21 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public Loader<List<FeedNews>> onCreateLoader(int i, Bundle bundle) {
-        return new FeedNewsLoader(this, GUARDIAN_URL);
+
+        SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String orderBy = sharedPrefs.getString(
+                getString(R.string.settings_order_by_key),
+                getString(R.string.settings_order_by_default));
+
+        Uri baseUri = Uri.parse(GUARDIAN_URL);
+        Uri.Builder uriBuilder = baseUri.buildUpon();
+
+        uriBuilder.appendQueryParameter("page-size", "40");
+        uriBuilder.appendQueryParameter("order-by", orderBy);
+        uriBuilder.appendQueryParameter("show-fields", "byline");
+        uriBuilder.appendQueryParameter("q", "czech");
+        uriBuilder.appendQueryParameter("api-key", "8e35ea00-2f5f-4fc0-b7a0-6c262ed57ba6");
+        return new FeedNewsLoader(this, uriBuilder.toString());
     }
 
     @Override

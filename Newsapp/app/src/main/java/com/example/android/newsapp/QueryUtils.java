@@ -27,6 +27,12 @@ public final class QueryUtils {
      * Tag for the log messages
      */
     private static final String LOG_TAG = QueryUtils.class.getSimpleName();
+    private static final String RESPONSE = "response";
+    private static final String RESULTS = "results";
+    private static final String WEBTITLE = "webTitle";
+    private static final String SECTIONNAME = "sectionName";
+    private static final String WEBPUBLICATIONDATE = "webPublicationDate";
+    private static final String WEBURL ="webUrl";
 
     /**
      * Create a private constructor because no one should ever create a {@link QueryUtils} object.
@@ -94,7 +100,7 @@ public final class QueryUtils {
 
             // If the request was successful (response code 200),
             // then read the input stream and parse the response.
-            if (urlConnection.getResponseCode() == 200) {
+            if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 inputStream = urlConnection.getInputStream();
                 jsonResponse = readFromStream(inputStream);
             } else {
@@ -154,22 +160,32 @@ public final class QueryUtils {
         try {
 
             // Create a JSONObject from the JSON response string
+
+
             JSONObject baseJsonResponse = new JSONObject(feedNewsJSON);
 
-            JSONObject baseJsonResults = baseJsonResponse.getJSONObject("response");
+            JSONObject baseJsonResults = baseJsonResponse.getJSONObject(RESPONSE);
 
             // Extract the JSONArray associated with the key called "features",
             // which represents a list of features (or earthquakes).
-            JSONArray feedNewsArray = baseJsonResults.getJSONArray("results");
+            JSONArray feedNewsArray = baseJsonResults.getJSONArray(RESULTS);
 
             // For each earthquake in the earthquakeArray, create an {@link FeedNews} object
             for (int i = 0; i < feedNewsArray.length(); i++) {
-                JSONObject properties = feedNewsArray.getJSONObject(i);
-                String title = properties.getString("webTitle");
-                String sectionName = properties.getString("sectionName");
-                String date = properties.getString("webPublicationDate");
-                String url = properties.getString("webUrl");
-                FeedNews feed = new FeedNews(title, sectionName, date, url);
+                JSONObject currentFeedNews = feedNewsArray.getJSONObject(i);
+                String title = currentFeedNews.getString(WEBTITLE);
+                String author = "(unknown author)";
+                if (currentFeedNews.has("fields")) {
+                    JSONObject fieldsObject = currentFeedNews.getJSONObject("fields");
+
+                    if (fieldsObject.has("byline")) {
+                        author = fieldsObject.getString("byline");
+                    }
+                }
+                String sectionName = currentFeedNews.getString(SECTIONNAME);
+                String date = currentFeedNews.getString(WEBPUBLICATIONDATE);
+                String url = currentFeedNews.getString(WEBURL);
+                FeedNews feed = new FeedNews(title, sectionName, author, date, url);
                 feedNews.add(feed);
             }
 
